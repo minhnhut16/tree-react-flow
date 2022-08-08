@@ -17,7 +17,7 @@ jobs:
       - name: Login to Heroku Container registry
         run: heroku container:login 
       - name: Build image
-        run: docker build --file DockerFile --tag registry.heroku.com/${{ secrets.TREE_REACT_FLOW_APP_NAME }}/web .
+        run: docker build --tag registry.heroku.com/${{ secrets.TREE_REACT_FLOW_APP_NAME }}/web .
       - name: Push image to heroku register
         run: docker push registry.heroku.com/${{ secrets.TREE_REACT_FLOW_APP_NAME }}/web
       - name: Release
