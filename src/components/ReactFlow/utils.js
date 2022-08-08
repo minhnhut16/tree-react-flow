@@ -1,10 +1,14 @@
 /* eslint-disable import/prefer-default-export */
 import { hierarchy, tree, stratify } from 'd3-hierarchy';
 import isArray from 'lodash/isArray';
+import isEmpty from 'lodash/isEmpty';
 
 export function buildNodesEgdes(initData, nodeWidth, nodeHeight) {
-  if (!initData) {
-    return null;
+  if (!initData || isEmpty(initData)) {
+    return {
+      nodes: [],
+      edges: [],
+    };
   }
 
   const treeLayout = tree();

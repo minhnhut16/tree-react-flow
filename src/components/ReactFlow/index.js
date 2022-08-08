@@ -27,12 +27,32 @@ function ReactFlowTree({ data, boxHeight, boxWidth }) {
     }) => {
       const layoutWidth = boxWidth + widthAdjustment;
       const layoutHeight = boxHeight * 2;
-      const childNodeIds = nodeData?.children?.map((item) => item.id) ?? [];
+
+      // filter deleted node and it's all down children
+      const nodesMappingData = nodes.map((item) => item.data);
+      const nodeDataParentId = nodeData.parentId;
+      const needFilterIds = [nodeId];
+      const remainNodeMappingData = [];
+      nodesMappingData.forEach((loopNodeData) => {
+        if (needFilterIds.includes(loopNodeData.id)) {
+          return;
+        }
+        if (loopNodeData.parentId
+          && needFilterIds.includes(loopNodeData.parentId)) {
+          needFilterIds.push(loopNodeData.id);
+          return;
+        }
+        if (loopNodeData.id && loopNodeData.id === nodeDataParentId) {
+          loopNodeData.children = loopNodeData.children.filter((child) => child.id !== nodeId);
+          if (loopNodeData.children.length === 0) {
+            delete loopNodeData.children;
+          }
+        }
+        remainNodeMappingData.push(loopNodeData);
+      });
 
       const newNodesEgdes = buildNodesEgdes(
-        nodes
-          .filter((item) => item.id !== nodeId && !childNodeIds.includes(item.id))
-          .map((item) => item.data),
+        remainNodeMappingData,
         layoutWidth,
         layoutHeight,
       );
