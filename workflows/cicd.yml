@@ -1,0 +1,24 @@
+name: cicd
+
+on:
+  push:
+    branches:
+      - "**"
+
+env:
+  HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+
+jobs:
+  deploy:
+    name: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Login to Heroku Container registry
+        run: heroku container:login 
+      - name: Build image
+        run: docker build --file DockerFile --tag registry.heroku.com/${{ secrets.TREE_REACT_FLOW_APP_NAME }}/web .
+      - name: Push image to heroku register
+        run: docker push registry.heroku.com/${{ secrets.TREE_REACT_FLOW_APP_NAME }}/web
+      - name: Release
+        run: heroku container:release web --app ${{ secrets.TREE_REACT_FLOW_APP_NAME }}

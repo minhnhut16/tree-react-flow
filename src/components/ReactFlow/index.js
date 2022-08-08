@@ -43,6 +43,8 @@ function ReactFlowTree({ data, boxHeight, boxWidth }) {
     [boxHeight, boxWidth],
   );
 
+  // just push new node to the end of array with parentId, buildNodesEgdes function will rearrange
+  // and push this new element to end of children of it's parent
   const createNode = useCallback(
     ({
       setNodes, nodes, setEdges, parentNodeId, nodeData,
