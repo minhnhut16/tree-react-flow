@@ -2,7 +2,7 @@ import React from 'react';
 import ReactFlowTree from './components/ReactFlow';
 import { TreeObject } from './data';
 
-import './app.css';
+import './App.css';
 
 function App() {
   return (
