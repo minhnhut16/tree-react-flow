@@ -1,7 +1,8 @@
 import React from 'react';
-import './app.css';
 import ReactFlowTree from './components/ReactFlow';
 import { TreeObject } from './data';
+
+import './app.css';
 
 function App() {
   return (
