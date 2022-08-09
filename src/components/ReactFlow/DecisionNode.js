@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Handle, Position, useReactFlow } from 'react-flow-renderer';
+import { Handle, Position } from 'react-flow-renderer';
 import PropTypes from 'prop-types';
 import JSONPretty from 'react-json-pretty';
 import styled from 'styled-components';
@@ -16,30 +16,23 @@ const JsonFormatter = styled(JSONPretty)`
 
 export default function DecisionNode({ data }) {
   const { deleteNode, createNode } = useTree();
-  const { setNodes, getNodes, setEdges } = useReactFlow();
-  const {
-    width, height, name, title, scoring, id, evaluation,
-  } = data;
+  const { width, height, name, title, scoring, id, evaluation } = data;
   const [openDeleteConfirmation, setOpenDeleteConfirmation] = useState(false);
   const [openCreateNodeForm, setOpenCreateNodeForm] = useState(false);
 
   const confirmDeleteNode = useCallback(() => {
     if (deleteNode) {
       deleteNode({
-        setNodes, nodes: getNodes(), setEdges, nodeId: id, nodeData: data,
+        nodeId: id,
       });
     }
     setOpenDeleteConfirmation(false);
-  }, [data, deleteNode, getNodes, id, setEdges, setNodes]);
+  }, [deleteNode, id]);
 
   const confirmCreateNode = useCallback(() => {
     if (createNode) {
       createNode({
-        setNodes,
-        nodes: getNodes(),
-        setEdges,
         parentNodeId: id,
-        parentNodeData: data,
         nodeData: {
           name: 'New node',
           title: 'new Node',
@@ -47,7 +40,7 @@ export default function DecisionNode({ data }) {
       });
     }
     setOpenCreateNodeForm(false);
-  }, [createNode, data, getNodes, id, setEdges, setNodes]);
+  }, [createNode, id]);
 
   return (
     <>
@@ -94,7 +87,6 @@ export default function DecisionNode({ data }) {
       >
         <p>Are you sure to delete this node</p>
       </Modal>
-      {/* <Handle type="source" position={Position.Bottom} id="b" style={handleStyle} /> */}
     </>
   );
 }

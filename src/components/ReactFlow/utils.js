@@ -22,7 +22,7 @@ export function buildNodesEgdes(initData, nodeWidth, nodeHeight) {
   }
 
   return {
-    nodes: treeData.descendants().map((item) => ({
+    nodes: treeData.descendants().map(item => ({
       id: item.data.id,
       type: 'decisionNode',
       data: {
@@ -33,7 +33,7 @@ export function buildNodesEgdes(initData, nodeWidth, nodeHeight) {
         y: item.y,
       },
     })),
-    edges: treeData.links().map((item) => ({
+    edges: treeData.links().map(item => ({
       id: `${item.source.data.id}-${item.target.data.id}`,
       source: item.source.data.id,
       target: item.target.data.id,

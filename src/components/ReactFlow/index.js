@@ -1,10 +1,10 @@
 /* eslint-disable no-param-reassign */
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 
 import styled from 'styled-components';
 import { v4 as uuid } from 'uuid';
-import ReactFlow from 'react-flow-renderer';
+import ReactFlow, { useEdgesState, useNodesState } from 'react-flow-renderer';
 import { TreeProvider } from './TreeProvider';
 import { buildNodesEgdes } from './utils';
 import DecisionNode from './DecisionNode';
@@ -21,54 +21,57 @@ const widthAdjustment = 20;
 const nodeTypes = { decisionNode: DecisionNode };
 
 function ReactFlowTree({ data, boxHeight, boxWidth }) {
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [flowTree, setFlowTree] = useState({});
+
   const deleteNode = useCallback(
-    ({
-      nodes, setNodes, setEdges, nodeId, nodeData,
-    }) => {
+    ({ nodeId }) => {
       const layoutWidth = boxWidth + widthAdjustment;
       const layoutHeight = boxHeight * 2;
 
-      // filter deleted node and it's all down children
-      const nodesMappingData = nodes.map((item) => item.data);
-      const nodeDataParentId = nodeData.parentId;
-      const needFilterIds = [nodeId];
-      const remainNodeMappingData = [];
-      nodesMappingData.forEach((loopNodeData) => {
-        if (needFilterIds.includes(loopNodeData.id)) {
-          return;
-        }
-        if (loopNodeData.parentId
-          && needFilterIds.includes(loopNodeData.parentId)) {
-          needFilterIds.push(loopNodeData.id);
-          return;
-        }
-        if (loopNodeData.id && loopNodeData.id === nodeDataParentId) {
-          loopNodeData.children = loopNodeData.children.filter((child) => child.id !== nodeId);
-          if (loopNodeData.children.length === 0) {
-            delete loopNodeData.children;
+      const treeAfterDeleted = (function travelTree(tree) {
+        function handleTravel(node, parentNode) {
+          if (!node) {
+            return;
+          }
+
+          if (node.id === nodeId) {
+            if (!parentNode) {
+              // delete all key of this object => empty node
+              // eslint-disable-next-line guard-for-in
+              for (const key in node) {
+                delete node[key];
+              }
+            } else {
+              parentNode.children = parentNode.children.filter(child => child.id !== nodeId);
+              if (parentNode.children.length === 0) {
+                delete parentNode.children;
+              }
+            }
+            return;
+          }
+
+          if (node.children) {
+            node.children.forEach(loopNode => handleTravel(loopNode, node));
           }
         }
-        remainNodeMappingData.push(loopNodeData);
-      });
 
-      const newNodesEgdes = buildNodesEgdes(
-        remainNodeMappingData,
-        layoutWidth,
-        layoutHeight,
-      );
+        handleTravel(tree);
+        return tree;
+      })({ ...flowTree });
+
+      const newNodesEgdes = buildNodesEgdes(treeAfterDeleted, layoutWidth, layoutHeight);
 
       setNodes(newNodesEgdes.nodes);
       setEdges(newNodesEgdes.edges);
+      setFlowTree(treeAfterDeleted);
     },
-    [boxHeight, boxWidth],
+    [boxHeight, boxWidth, flowTree, setEdges, setNodes]
   );
 
-  // just push new node to the end of array with parentId, buildNodesEgdes function will rearrange
-  // and push this new element to end of children of it's parent
   const createNode = useCallback(
-    ({
-      setNodes, nodes, setEdges, parentNodeId, nodeData,
-    }) => {
+    ({ parentNodeId, nodeData }) => {
       const layoutWidth = boxWidth + widthAdjustment;
       const layoutHeight = boxHeight * 2;
 
@@ -80,39 +83,45 @@ function ReactFlowTree({ data, boxHeight, boxWidth }) {
         parentId: parentNodeId,
       };
 
-      const dataNodes = nodes.map((loopNode) => {
-        if (loopNode.data.id === parentNodeId) {
-          const currenChildren = loopNode.data.children
-            ? [...loopNode.data.children, newNodeData]
-            : [newNodeData];
+      const treeAfterAdded = (function travelTree(tree) {
+        function handleTravel(node) {
+          if (!node) {
+            return;
+          }
 
-          return {
-            ...loopNode.data,
-            children: currenChildren,
-          };
+          if (node.id === parentNodeId) {
+            const currenChildren = node.children ? [...node.children, newNodeData] : [newNodeData];
+            node.children = currenChildren;
+            return;
+          }
+
+          if (node.children) {
+            node.children.forEach(loopNode => handleTravel(loopNode));
+          }
         }
 
-        return {
-          ...loopNode.data,
-        };
-      });
+        handleTravel(tree);
+        return tree;
+      })({ ...flowTree });
 
-      dataNodes.push(newNodeData);
-
-      const newNodesEgdes = buildNodesEgdes(dataNodes, layoutWidth, layoutHeight);
+      const newNodesEgdes = buildNodesEgdes(treeAfterAdded, layoutWidth, layoutHeight);
 
       setNodes(newNodesEgdes.nodes);
       setEdges(newNodesEgdes.edges);
+      setFlowTree(treeAfterAdded);
     },
-    [boxHeight, boxWidth],
+    [boxHeight, boxWidth, flowTree, setEdges, setNodes]
   );
 
-  const parseInitTree = useMemo(() => {
+  useEffect(() => {
+    if (!data) {
+      return;
+    }
+
     const layoutWidth = boxWidth + widthAdjustment;
     const layoutHeight = boxHeight * 2;
 
-    const flattenTree = (function travelTree(tree) {
-      const resArr = [];
+    const formatedTree = (function travelTree(tree) {
       function handleTravel(node, parentNode) {
         if (!node) {
           return;
@@ -131,26 +140,30 @@ function ReactFlowTree({ data, boxHeight, boxWidth }) {
           delete node.nodes;
         }
 
-        resArr.push(node);
         if (node.children) {
-          node.children.forEach((loopNode) => handleTravel(loopNode, node));
+          node.children.forEach(loopNode => handleTravel(loopNode, node));
         }
       }
 
       handleTravel(tree);
-      return resArr;
-    }({ ...data }));
+      return tree;
+    })({ ...data });
 
-    return buildNodesEgdes(flattenTree, layoutWidth, layoutHeight);
-  }, [boxHeight, boxWidth]);
+    const nodesEdges = buildNodesEgdes(formatedTree, layoutWidth, layoutHeight);
+    setNodes(nodesEdges.nodes);
+    setEdges(nodesEdges.edges);
+    setFlowTree(formatedTree);
+  }, [boxHeight, boxWidth, data, setEdges, setNodes]);
 
   return (
     <TreeProvider value={{ deleteNode, createNode }}>
       <Wrapper>
         <ReactFlow
-          defaultNodes={parseInitTree.nodes}
-          defaultEdges={parseInitTree.edges}
+          nodes={nodes}
+          edges={edges}
           nodeTypes={nodeTypes}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
           fitView
         />
       </Wrapper>
