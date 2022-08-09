@@ -7,7 +7,6 @@ import './App.css';
 function App() {
   return (
     <div className="App">
-      abbbb
       <ReactFlowTree data={TreeObject.root} boxWidth={240} boxHeight={180} />
     </div>
   );
