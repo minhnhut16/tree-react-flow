@@ -7,7 +7,6 @@ import styled from 'styled-components';
 import ThemeAdventureTime from 'react-json-pretty/dist/adventure_time';
 import { Modal } from 'antd';
 import { useTree } from './TreeProvider';
-import Form from './Form';
 
 const JsonFormatter = styled(JSONPretty)`
   pre {
@@ -15,7 +14,7 @@ const JsonFormatter = styled(JSONPretty)`
   }
 `;
 
-export default function DecisionNode({ data }) {
+export default function FallbackNode({ data }) {
   const { deleteNode, createNode } = useTree();
   const { width, height, name, title, scoring, id, evaluation } = data;
   const [openDeleteConfirmation, setOpenDeleteConfirmation] = useState(false);
@@ -30,23 +29,27 @@ export default function DecisionNode({ data }) {
     setOpenDeleteConfirmation(false);
   }, [deleteNode, id]);
 
-  const handleSubmitCreate = dataSubmit => {
+  const confirmCreateNode = useCallback(() => {
     if (createNode) {
       createNode({
         parentNodeId: id,
         nodeData: {
-          ...dataSubmit,
+          name: 'New node',
+          title: 'new Node',
         },
       });
     }
     setOpenCreateNodeForm(false);
-  };
+  }, [createNode, id]);
 
   return (
     <>
       <Handle type="target" position={Position.Top} />
-      <div className="p-2 rounded-3xl border-4 border-black relative" style={{ width, height }}>
-        <div className="font-semibold text-sm">{title || name}</div>
+      <div
+        className="p-2 rounded-3xl border-4 border-lime-500 relative bg-slate-700"
+        style={{ width, height }}
+      >
+        <div className="font-semibold text-sm text-white">{title || name}</div>
         <JsonFormatter
           data={{
             name,
@@ -71,12 +74,12 @@ export default function DecisionNode({ data }) {
       <Handle type="source" position={Position.Bottom} />
 
       <Modal
-        title="Create Node"
+        title="Create confirmation"
         visible={openCreateNodeForm}
-        footer={null}
+        onOk={confirmCreateNode}
         onCancel={() => setOpenCreateNodeForm(false)}
       >
-        <Form onSubmit={handleSubmitCreate} />
+        <p>Create a node</p>
       </Modal>
 
       <Modal
@@ -91,7 +94,7 @@ export default function DecisionNode({ data }) {
   );
 }
 
-DecisionNode.propTypes = {
+FallbackNode.propTypes = {
   data: PropTypes.shape({
     width: PropTypes.number,
     height: PropTypes.number,
@@ -103,6 +106,6 @@ DecisionNode.propTypes = {
   }),
 };
 
-DecisionNode.defaultProps = {
+FallbackNode.defaultProps = {
   data: {},
 };

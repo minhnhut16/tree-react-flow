@@ -175,6 +175,20 @@ export const TreeObject = {
         next_action: 'rejected',
         data: {},
       },
+      nodes: [
+        {
+          name: 'fallback 1',
+          title: 'fallback 1',
+          evaluation: '(conv_number(income ?? 0) >= 30000000)',
+          scoring: '($.high_score_customer.score ?? 0) + 30.7',
+        },
+        {
+          name: 'fallback 2',
+          title: 'fallback 2',
+          evaluation: '(conv_number(income ?? 0) >= 30000000)',
+          scoring: '($.high_score_customer.score ?? 0) + 30.7',
+        },
+      ],
     },
   },
 };

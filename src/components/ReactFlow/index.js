@@ -1,13 +1,16 @@
 /* eslint-disable no-param-reassign */
 import React, { useCallback, useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-
 import styled from 'styled-components';
 import { v4 as uuid } from 'uuid';
 import ReactFlow, { useEdgesState, useNodesState } from 'react-flow-renderer';
+
 import { TreeProvider } from './TreeProvider';
-import { buildNodesEgdes } from './utils';
+import { buildNodesEgdes, edgeTypesKeys, nodeTypesKeys } from './utils';
 import DecisionNode from './DecisionNode';
+import FallbackNode from './FallbackNode';
+import DecisionEdge from './DecisionEdge';
+import FallbackEdge from './FallbackEdge';
 
 const Wrapper = styled.div`
   position: fixed;
@@ -18,7 +21,14 @@ const Wrapper = styled.div`
 // Minimum Spacing between node
 const widthAdjustment = 20;
 
-const nodeTypes = { decisionNode: DecisionNode };
+const nodeTypes = {
+  [nodeTypesKeys.decisionNodeKey]: DecisionNode,
+  [nodeTypesKeys.fallbackNodeKey]: FallbackNode,
+};
+const edgeTypes = {
+  [edgeTypesKeys.decisionEdgeKey]: DecisionEdge,
+  [edgeTypesKeys.fallbackEdgeKey]: FallbackEdge,
+};
 
 function ReactFlowTree({ data, boxHeight, boxWidth }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -83,6 +93,10 @@ function ReactFlowTree({ data, boxHeight, boxWidth }) {
         parentId: parentNodeId,
       };
 
+      if (!newNodeData.isFallback) {
+        delete newNodeData.isFallback;
+      }
+
       const treeAfterAdded = (function travelTree(tree) {
         function handleTravel(node) {
           if (!node) {
@@ -90,8 +104,40 @@ function ReactFlowTree({ data, boxHeight, boxWidth }) {
           }
 
           if (node.id === parentNodeId) {
-            const currenChildren = node.children ? [...node.children, newNodeData] : [newNodeData];
-            node.children = currenChildren;
+            // only allow 1 fallback node in children
+            if (
+              !node.isFallback &&
+              newNodeData.isFallback &&
+              node.children &&
+              node.children.some(item => item.isFallback)
+            ) {
+              return;
+            }
+
+            // parent fallback only allow create fallback node
+            if (node.isFallback && !newNodeData.isFallback) {
+              return;
+            }
+
+            newNodeData.nodeType = newNodeData.isFallback
+              ? nodeTypesKeys.fallbackNodeKey
+              : nodeTypesKeys.decisionNodeKey;
+            newNodeData.edgeType = newNodeData.isFallback
+              ? edgeTypesKeys.fallbackEdgeKey
+              : edgeTypesKeys.decisionEdgeKey;
+
+            if (node.children) {
+              if (node.children[node.children.length - 1].isFallback) {
+                const temp = node.children[node.children.length - 1];
+                node.children[node.children.length - 1] = newNodeData;
+                node.children.push(temp);
+              } else {
+                node.children.push(newNodeData);
+              }
+            } else {
+              node.children = [newNodeData];
+            }
+
             return;
           }
 
@@ -140,6 +186,23 @@ function ReactFlowTree({ data, boxHeight, boxWidth }) {
           delete node.nodes;
         }
 
+        if (parentNode && parentNode.isFallback) {
+          node.isFallback = true;
+        }
+
+        node.nodeType = node.isFallback
+          ? nodeTypesKeys.fallbackNodeKey
+          : nodeTypesKeys.decisionNodeKey;
+        node.edgeType = node.isFallback
+          ? edgeTypesKeys.fallbackEdgeKey
+          : edgeTypesKeys.decisionEdgeKey;
+
+        if (node.fallback) {
+          const formatedFallback = { ...node.fallback, isFallback: true };
+          node.children = node.children ? [...node.children, formatedFallback] : [formatedFallback];
+          delete node.fallback;
+        }
+
         if (node.children) {
           node.children.forEach(loopNode => handleTravel(loopNode, node));
         }
@@ -162,6 +225,7 @@ function ReactFlowTree({ data, boxHeight, boxWidth }) {
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           fitView
