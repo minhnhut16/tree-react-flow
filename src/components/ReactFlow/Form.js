@@ -26,7 +26,6 @@ export default function Form({ onSubmit }) {
     resolver: yupResolver(validationSchema),
   });
 
-  console.log(onSubmit);
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
       <InputForm name="name" control={control} label="Name" />

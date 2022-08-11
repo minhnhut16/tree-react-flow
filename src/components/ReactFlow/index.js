@@ -5,12 +5,14 @@ import styled from 'styled-components';
 import { v4 as uuid } from 'uuid';
 import ReactFlow, { useEdgesState, useNodesState } from 'react-flow-renderer';
 
+import { Modal } from 'antd';
 import { TreeProvider } from './TreeProvider';
 import { buildNodesEgdes, edgeTypesKeys, nodeTypesKeys } from './utils';
 import DecisionNode from './DecisionNode';
 import FallbackNode from './FallbackNode';
 import DecisionEdge from './DecisionEdge';
 import FallbackEdge from './FallbackEdge';
+import Form from './Form';
 
 const Wrapper = styled.div`
   position: fixed;
@@ -34,6 +36,10 @@ function ReactFlowTree({ data, boxHeight, boxWidth }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [flowTree, setFlowTree] = useState({});
+
+  const [openDeleteConfirmation, setOpenDeleteConfirmation] = useState(false);
+  const [openCreateNodeForm, setOpenCreateNodeForm] = useState(false);
+  const [focusNodeId, setFocusNodeId] = useState('');
 
   const deleteNode = useCallback(
     ({ nodeId }) => {
@@ -109,7 +115,7 @@ function ReactFlowTree({ data, boxHeight, boxWidth }) {
               !node.isFallback &&
               newNodeData.isFallback &&
               node.children &&
-              node.children.some(item => item.isFallback)
+              node.children[node.children.length - 1].isFallback
             ) {
               return;
             }
@@ -118,13 +124,6 @@ function ReactFlowTree({ data, boxHeight, boxWidth }) {
             if (node.isFallback && !newNodeData.isFallback) {
               return;
             }
-
-            newNodeData.nodeType = newNodeData.isFallback
-              ? nodeTypesKeys.fallbackNodeKey
-              : nodeTypesKeys.decisionNodeKey;
-            newNodeData.edgeType = newNodeData.isFallback
-              ? edgeTypesKeys.fallbackEdgeKey
-              : edgeTypesKeys.decisionEdgeKey;
 
             if (node.children) {
               if (node.children[node.children.length - 1].isFallback) {
@@ -159,6 +158,41 @@ function ReactFlowTree({ data, boxHeight, boxWidth }) {
     [boxHeight, boxWidth, flowTree, setEdges, setNodes]
   );
 
+  const confirmDeleteNode = useCallback(() => {
+    if (focusNodeId) {
+      deleteNode({
+        nodeId: focusNodeId,
+      });
+
+      setOpenDeleteConfirmation(false);
+    }
+  }, [deleteNode, focusNodeId]);
+
+  const handleSubmitCreate = useCallback(
+    dataSubmit => {
+      if (focusNodeId) {
+        createNode({
+          parentNodeId: focusNodeId,
+          nodeData: {
+            ...dataSubmit,
+          },
+        });
+      }
+      setOpenCreateNodeForm(false);
+    },
+    [createNode, focusNodeId]
+  );
+
+  const handleOpenCreate = useCallback(parentNodeId => {
+    setFocusNodeId(parentNodeId);
+    setOpenCreateNodeForm(true);
+  }, []);
+
+  const handleOpenDelete = useCallback(nodeId => {
+    setFocusNodeId(nodeId);
+    setOpenDeleteConfirmation(true);
+  }, []);
+
   useEffect(() => {
     if (!data) {
       return;
@@ -190,13 +224,6 @@ function ReactFlowTree({ data, boxHeight, boxWidth }) {
           node.isFallback = true;
         }
 
-        node.nodeType = node.isFallback
-          ? nodeTypesKeys.fallbackNodeKey
-          : nodeTypesKeys.decisionNodeKey;
-        node.edgeType = node.isFallback
-          ? edgeTypesKeys.fallbackEdgeKey
-          : edgeTypesKeys.decisionEdgeKey;
-
         if (node.fallback) {
           const formatedFallback = { ...node.fallback, isFallback: true };
           node.children = node.children ? [...node.children, formatedFallback] : [formatedFallback];
@@ -219,7 +246,7 @@ function ReactFlowTree({ data, boxHeight, boxWidth }) {
   }, [boxHeight, boxWidth, data, setEdges, setNodes]);
 
   return (
-    <TreeProvider value={{ deleteNode, createNode }}>
+    <TreeProvider value={{ handleOpenCreate, handleOpenDelete }}>
       <Wrapper>
         <ReactFlow
           nodes={nodes}
@@ -231,6 +258,24 @@ function ReactFlowTree({ data, boxHeight, boxWidth }) {
           fitView
         />
       </Wrapper>
+
+      <Modal
+        title="Create Node"
+        visible={openCreateNodeForm}
+        footer={null}
+        onCancel={() => setOpenCreateNodeForm(false)}
+      >
+        <Form onSubmit={handleSubmitCreate} />
+      </Modal>
+
+      <Modal
+        title="Delete confirmation"
+        visible={openDeleteConfirmation}
+        onOk={confirmDeleteNode}
+        onCancel={() => setOpenDeleteConfirmation(false)}
+      >
+        <p>Are you sure to delete this node</p>
+      </Modal>
     </TreeProvider>
   );
 }

@@ -24,7 +24,7 @@ export function buildNodesEgdes(initData, nodeWidth, nodeHeight) {
   return {
     nodes: treeData.descendants().map(item => ({
       id: item.data.id,
-      type: item.data.nodeType,
+      type: item.data.isFallback ? nodeTypesKeys.fallbackNodeKey : nodeTypesKeys.decisionNodeKey,
       data: {
         ...item.data,
       },
@@ -37,7 +37,9 @@ export function buildNodesEgdes(initData, nodeWidth, nodeHeight) {
       id: `${item.source.data.id}-${item.target.data.id}`,
       source: item.source.data.id,
       target: item.target.data.id,
-      type: item.target.data.edgeType,
+      type: item.target.data.isFallback
+        ? edgeTypesKeys.fallbackEdgeKey
+        : edgeTypesKeys.decisionEdgeKey,
     })),
   };
 }
