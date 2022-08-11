@@ -1,3 +1,4 @@
+/* eslint-disable react/button-has-type */
 import React from 'react';
 import { Handle, Position } from 'react-flow-renderer';
 import PropTypes from 'prop-types';
@@ -14,8 +15,8 @@ const JsonFormatter = styled(JSONPretty)`
 `;
 
 export default function FallbackNode({ data }) {
-  const { handleOpenCreate, handleOpenDelete } = useTree();
-  const { width, height, name, title, scoring, id, evaluation } = data;
+  const { handleOpenCreate, handleOpenDelete, handleOpenEdit } = useTree();
+  const { width, height, name, title, scoring, evaluation } = data;
 
   return (
     <>
@@ -33,17 +34,25 @@ export default function FallbackNode({ data }) {
           }}
           theme={ThemeAdventureTime}
         />
-        <div
-          className="absolute left-2/3 -bottom-3 bg-blue-500  text-white font-bold rounded-full w-6 h-6 flex justify-center items-center"
-          onClick={() => handleOpenCreate(id)}
-        >
-          +
-        </div>
-        <div
-          className="absolute right-2/3 -bottom-3 bg-red-500  text-white font-bold rounded-full w-6 h-6 flex justify-center items-center"
-          onClick={() => handleOpenDelete(id)}
-        >
-          -
+        <div className=" w-full left-0 absolute flex justify-center bottom-2">
+          <button
+            onClick={() => handleOpenCreate(data)}
+            className="bg-green-500  text-white font-bold py-2 px-2 rounded"
+          >
+            Add
+          </button>
+          <button
+            onClick={() => handleOpenEdit(data)}
+            className="bg-blue-500  text-white font-bold py-2 px-2 rounded mx-2"
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => handleOpenDelete(data)}
+            className="bg-red-500  text-white font-bold py-2 px-2 rounded"
+          >
+            Delete
+          </button>
         </div>
       </div>
       <Handle type="source" position={Position.Bottom} />

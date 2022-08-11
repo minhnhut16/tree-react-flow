@@ -39,7 +39,8 @@ function ReactFlowTree({ data, boxHeight, boxWidth }) {
 
   const [openDeleteConfirmation, setOpenDeleteConfirmation] = useState(false);
   const [openCreateNodeForm, setOpenCreateNodeForm] = useState(false);
-  const [focusNodeId, setFocusNodeId] = useState('');
+  const [openEditNodeForm, setOpenEditNodeForm] = useState(false);
+  const [focusNodeData, setFocusNodeData] = useState(null);
 
   const deleteNode = useCallback(
     ({ nodeId }) => {
@@ -158,21 +159,73 @@ function ReactFlowTree({ data, boxHeight, boxWidth }) {
     [boxHeight, boxWidth, flowTree, setEdges, setNodes]
   );
 
+  const editNode = useCallback(
+    ({ nodeId, nodeData }) => {
+      const layoutWidth = boxWidth + widthAdjustment;
+      const layoutHeight = boxHeight * 2;
+
+      const treeAfterEdited = (function travelTree(tree) {
+        function handleTravel(node) {
+          if (!node) {
+            return;
+          }
+
+          if (node.id === nodeId) {
+            // eslint-disable-next-line guard-for-in
+            for (const key in nodeData) {
+              node[key] = nodeData[key];
+            }
+          }
+
+          if (node.children) {
+            node.children.forEach(loopNode => handleTravel(loopNode));
+          }
+        }
+
+        handleTravel(tree);
+        return tree;
+      })({ ...flowTree });
+
+      const newNodesEgdes = buildNodesEgdes(treeAfterEdited, layoutWidth, layoutHeight);
+
+      setNodes(newNodesEgdes.nodes);
+      setEdges(newNodesEgdes.edges);
+      setFlowTree(treeAfterEdited);
+    },
+    [boxHeight, boxWidth, flowTree, setEdges, setNodes]
+  );
+
   const confirmDeleteNode = useCallback(() => {
-    if (focusNodeId) {
+    if (focusNodeData) {
       deleteNode({
-        nodeId: focusNodeId,
+        nodeId: focusNodeData.id,
       });
 
       setOpenDeleteConfirmation(false);
     }
-  }, [deleteNode, focusNodeId]);
+  }, [deleteNode, focusNodeData]);
+
+  const handleSubmitEdit = useCallback(
+    dataSubmit => {
+      if (focusNodeData) {
+        editNode({
+          nodeId: focusNodeData.id,
+          nodeData: {
+            ...focusNodeData,
+            ...dataSubmit,
+          },
+        });
+      }
+      setOpenEditNodeForm(false);
+    },
+    [editNode, focusNodeData]
+  );
 
   const handleSubmitCreate = useCallback(
     dataSubmit => {
-      if (focusNodeId) {
+      if (focusNodeData) {
         createNode({
-          parentNodeId: focusNodeId,
+          parentNodeId: focusNodeData.id,
           nodeData: {
             ...dataSubmit,
           },
@@ -180,17 +233,22 @@ function ReactFlowTree({ data, boxHeight, boxWidth }) {
       }
       setOpenCreateNodeForm(false);
     },
-    [createNode, focusNodeId]
+    [createNode, focusNodeData]
   );
 
-  const handleOpenCreate = useCallback(parentNodeId => {
-    setFocusNodeId(parentNodeId);
+  const handleOpenCreate = useCallback(parentNodeData => {
+    setFocusNodeData(parentNodeData);
     setOpenCreateNodeForm(true);
   }, []);
 
-  const handleOpenDelete = useCallback(nodeId => {
-    setFocusNodeId(nodeId);
+  const handleOpenDelete = useCallback(nodeData => {
+    setFocusNodeData(nodeData);
     setOpenDeleteConfirmation(true);
+  }, []);
+
+  const handleOpenEdit = useCallback(nodeData => {
+    setFocusNodeData(nodeData);
+    setOpenEditNodeForm(true);
   }, []);
 
   useEffect(() => {
@@ -245,8 +303,16 @@ function ReactFlowTree({ data, boxHeight, boxWidth }) {
     setFlowTree(formatedTree);
   }, [boxHeight, boxWidth, data, setEdges, setNodes]);
 
+  // remove logo
+  useEffect(() => {
+    const elements = document.getElementsByClassName('react-flow__attribution');
+    while (elements.length > 0) {
+      elements[0].parentNode.removeChild(elements[0]);
+    }
+  }, []);
+
   return (
-    <TreeProvider value={{ handleOpenCreate, handleOpenDelete }}>
+    <TreeProvider value={{ handleOpenCreate, handleOpenDelete, handleOpenEdit }}>
       <Wrapper>
         <ReactFlow
           nodes={nodes}
@@ -266,6 +332,15 @@ function ReactFlowTree({ data, boxHeight, boxWidth }) {
         onCancel={() => setOpenCreateNodeForm(false)}
       >
         <Form onSubmit={handleSubmitCreate} />
+      </Modal>
+
+      <Modal
+        title="Edit Node"
+        visible={openEditNodeForm}
+        footer={null}
+        onCancel={() => setOpenEditNodeForm(false)}
+      >
+        <Form initialValue={focusNodeData} onSubmit={handleSubmitEdit} isEdit />
       </Modal>
 
       <Modal

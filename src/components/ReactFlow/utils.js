@@ -20,7 +20,7 @@ export function buildNodesEgdes(initData, nodeWidth, nodeHeight) {
   } else {
     treeData = treeLayout(hierarchy(initData));
   }
-
+  console.log(treeData.links());
   return {
     nodes: treeData.descendants().map(item => ({
       id: item.data.id,
