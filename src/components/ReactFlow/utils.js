@@ -1,5 +1,6 @@
+/* eslint-disable no-param-reassign */
 /* eslint-disable import/prefer-default-export */
-import { hierarchy, tree, stratify } from 'd3-hierarchy';
+import { hierarchy, tree as treeFn, stratify } from 'd3-hierarchy';
 import isArray from 'lodash/isArray';
 import isEmpty from 'lodash/isEmpty';
 
@@ -11,7 +12,7 @@ export function buildNodesEgdes(initData, nodeWidth, nodeHeight) {
     };
   }
 
-  const treeLayout = tree();
+  const treeLayout = treeFn();
   treeLayout.nodeSize([nodeWidth, nodeHeight]);
 
   let treeData;
@@ -46,3 +47,52 @@ export function buildNodesEgdes(initData, nodeWidth, nodeHeight) {
 
 export const nodeTypesKeys = { decisionNodeKey: 'decisionNode', fallbackNodeKey: 'fallbackNode' };
 export const edgeTypesKeys = { decisionEdgeKey: 'decisionEdge', fallbackEdgeKey: 'fallbackEdge' };
+
+export function convertOriginTree(tree) {
+  function handleTravel(node) {
+    if (!node) {
+      return;
+    }
+
+    delete node.id;
+    delete node.width;
+    delete node.height;
+    delete node.parentId;
+
+    if (!node.isFallback && node.children && node.children[node.children.length - 1].isFallback) {
+      const fallbackNode = node.children.pop();
+      node.fallback = fallbackNode;
+      handleTravel(node.fallback);
+    }
+
+    if (node.children && !node.children.length) {
+      delete node.children;
+    }
+
+    if (node.children) {
+      node.children.forEach(loopNode => handleTravel(loopNode));
+    }
+
+    if (node.children) {
+      node.nodes = node.children;
+      delete node.children;
+    }
+    delete node.isFallback;
+  }
+
+  handleTravel(tree);
+  return tree;
+}
+
+export function exportJSON(jsObject) {
+  const jsonString = JSON.stringify(jsObject, null, 2);
+  const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(jsonString)}`;
+  const exportFileDefaultName = 'data.json';
+  const linkElement = document.createElement('a');
+  linkElement.setAttribute('href', dataUri);
+  linkElement.setAttribute('download', exportFileDefaultName);
+  linkElement.style.display = 'none';
+  document.body.appendChild(linkElement);
+  linkElement.click();
+  document.body.removeChild(linkElement);
+}

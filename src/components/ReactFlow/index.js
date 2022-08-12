@@ -1,3 +1,4 @@
+/* eslint-disable react/button-has-type */
 /* eslint-disable no-param-reassign */
 import React, { useCallback, useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
@@ -7,7 +8,7 @@ import ReactFlow, { useEdgesState, useNodesState } from 'react-flow-renderer';
 
 import { Modal } from 'antd';
 import { TreeProvider } from './TreeProvider';
-import { buildNodesEgdes, edgeTypesKeys, nodeTypesKeys } from './utils';
+import { buildNodesEgdes, convertOriginTree, edgeTypesKeys, nodeTypesKeys } from './utils';
 import DecisionNode from './DecisionNode';
 import FallbackNode from './FallbackNode';
 import DecisionEdge from './DecisionEdge';
@@ -32,7 +33,7 @@ const edgeTypes = {
   [edgeTypesKeys.fallbackEdgeKey]: FallbackEdge,
 };
 
-function ReactFlowTree({ data, boxHeight, boxWidth }) {
+function ReactFlowTree({ data, boxHeight, boxWidth, onExport }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [flowTree, setFlowTree] = useState({});
@@ -314,6 +315,22 @@ function ReactFlowTree({ data, boxHeight, boxWidth }) {
   return (
     <TreeProvider value={{ handleOpenCreate, handleOpenDelete, handleOpenEdit }}>
       <Wrapper>
+        <button
+          onClick={() => {
+            onExport && onExport(convertOriginTree(flowTree));
+          }}
+          className="absolute z-[5] right-2 top-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded inline-flex items-center cursor-pointer"
+        >
+          <svg
+            className="fill-current w-4 h-4 mr-2"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+          >
+            <path d="M13 8V2H7v6H2l8 8 8-8h-5zM0 18h20v2H0v-2z" />
+          </svg>
+          <span>Export JSON</span>
+        </button>
+
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -361,12 +378,14 @@ ReactFlowTree.propTypes = {
   boxWidth: PropTypes.number,
   /** Node box's height */
   boxHeight: PropTypes.number,
+  onExport: PropTypes.func,
 };
 
 ReactFlowTree.defaultProps = {
   data: {},
   boxWidth: 190,
   boxHeight: 80,
+  onExport: null,
 };
 
 export default ReactFlowTree;
