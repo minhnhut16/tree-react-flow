@@ -165,6 +165,14 @@ function ReactFlowTree({ data, boxHeight, boxWidth, onExport }) {
       const layoutWidth = boxWidth + widthAdjustment;
       const layoutHeight = boxHeight * 2;
 
+      const newNodeData = {
+        ...nodeData,
+      };
+
+      if (!newNodeData.isFallback) {
+        delete newNodeData.isFallback;
+      }
+
       const treeAfterEdited = (function travelTree(tree) {
         function handleTravel(node) {
           if (!node) {
